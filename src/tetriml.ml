@@ -134,15 +134,46 @@ module Game = struct
       speed = 60;
     }
 
-  let is_valid_block state new_block =
+  let is_valid_block board new_block =
     List.for_all
       (fun c1 ->
         let x1, y1 = c1.position in
         x1 >= 0 && x1 < width && y1 >= 0 && y1 < height
-        && List.for_all
-             (fun { position = p2; _ } -> (x1, y1) <> p2)
-             state.board.cells)
+        && List.for_all (fun { position = p2; _ } -> (x1, y1) <> p2) board.cells)
       (cells_of_block new_block)
+
+  let rec shadow state block =
+    (* We assume the block is valid *)
+    let x, y = block.pos in
+    let candidate_block = { block with pos = (x, y + 1) } in
+    if is_valid_block state candidate_block then shadow state candidate_block
+    else block
+
+  let demolish cells =
+    let rec aux i cells =
+      if i < 0 then cells
+      else
+        let line, others =
+          List.partition
+            (fun c ->
+              let _, y = c.position in
+              y = i)
+            cells
+        in
+        if List.length line = width then
+          (* DESTROY *)
+          let new_cells =
+            List.map
+              (fun c ->
+                let x, y = c.position in
+                let new_y = if y < i then y + 1 else y in
+                { c with position = (x, new_y) })
+              others
+          in
+          aux i new_cells
+        else aux (i - 1) cells
+    in
+    aux height cells
 
   (** This function is called on each frame, before considering player actions, to move the timer by 1. *)
   let pre_update state =
@@ -156,16 +187,16 @@ module Game = struct
         let old_block = state.board.block in
         let x, y = old_block.pos in
         let candidate_block = { old_block with pos = (x, y + 1) } in
-        if is_valid_block state candidate_block then
+        if is_valid_block state.board candidate_block then
           {
             state with
             timer = new_timer;
             board = { state.board with block = candidate_block };
           }
         else
-          (* sediment block + destroy check -> (?) + spawn new one *)
-          let new_cells = cells_of_block old_block @ state.board.cells in
-          (* TODO: check for destruction *)
+          let new_cells =
+            cells_of_block old_block @ state.board.cells |> demolish
+          in
           let spawned_block = init_block () in
           let board = { cells = new_cells; block = spawned_block } in
           { state with board; timer = new_timer }
@@ -193,11 +224,11 @@ module Game = struct
         else if Input.is_down ~io `arrow_right then
           let old_x, old_y = old_block.pos in
           { old_block with pos = (old_x + 1, old_y) }
-        else (* TODO: add speed down *)
-          old_block
+        else old_block
       in
       let new_block =
-        if is_valid_block state candidate_block then candidate_block
+        if Input.is_down ~io `arrow_down then shadow state.board old_block
+        else if is_valid_block state.board candidate_block then candidate_block
         else old_block
       in
       { state with board = { state.board with block = new_block } }
@@ -238,12 +269,23 @@ module Display = struct
   let render_cell ~io (cell : Game.cell) =
     let color = color_of_shape cell.from_shape in
     let x, y = cell.position in
+    (* FIXME: rendering two adjacent cells overlap on 1 pixel. Visible when alpha is 0.5 *)
     let box = Box.v (render_coords (x, y)) (Size.v cell_size cell_size) in
     Box.fill ~io ~color box
 
   let render_block ~io (block : Game.block) =
     let cells = Game.cells_of_block block in
     List.iter (render_cell ~io) cells
+
+  let render_shadow ~io (shadow : Game.block) =
+    let cells = Game.cells_of_block shadow in
+    let color = color_of_shape shadow.shape |> Color.with_alpha 0.5 in
+    List.iter
+      (fun (c : Game.cell) ->
+        let x, y = c.position in
+        let box = Box.v (render_coords (x, y)) (Size.v cell_size cell_size) in
+        Box.fill ~io ~color box)
+      cells
 
   let render_walls ~io =
     let walls =
@@ -269,6 +311,7 @@ module Display = struct
     Box.fill ~io ~color:Color.black (Window.box ~io);
     render_walls ~io;
     List.iter (render_cell ~io) state.board.cells;
+    render_shadow ~io (Game.shadow state.board state.board.block);
     render_block ~io state.board.block
 end
 
