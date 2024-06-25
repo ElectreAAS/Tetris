@@ -1,6 +1,5 @@
 let width = 12
 let height = 24
-let number_of_shapes = 7
 let base_speed = 60
 let acceleration = 4
 
@@ -47,15 +46,19 @@ type shape =
                  X      ·
             S    ##      ##
                   #     ##
+          --------------------------------------
+       Freckles  ·#     X
+                 #       #
   *)
+(* | Freckles *)
 
 type direction = Up | Down | Left | Right
 type cell = { from_shape : shape; position : coord }
 type block = { shape : shape; pos : coord; orientation : direction }
-type board = { cells : cell list; block : block }
 
 type state = {
-  board : board;
+  cells : cell list;
+  block : block;
   is_finished : bool;
   is_paused : bool;
   timer : int;  (** Number of frames that have passed since last move. *)
@@ -63,15 +66,29 @@ type state = {
       (** Blocks move every [speed] frames. Lower this number to make them go faster. *)
 }
 
+let weighted_shapes =
+  [|
+    (I, 10);
+    (O, 10);
+    (T, 10);
+    (L, 10);
+    (J, 10);
+    (Z, 10);
+    (S, 10);
+    (* (Freckles, 1); *)
+  |]
+
+let total_weights =
+  Array.fold_left (fun sum (_, n) -> sum + n) 0 weighted_shapes
+
 let random_shape () =
-  match Random.int number_of_shapes with
-  | 0 -> I
-  | 1 -> O
-  | 2 -> T
-  | 3 -> L
-  | 4 -> J
-  | 5 -> Z
-  | _ -> S
+  let n = Random.int total_weights in
+  let rec aux cursor i =
+    let shape, weight = weighted_shapes.(i) in
+    let new_cursor = cursor + weight in
+    if new_cursor >= n then shape else aux new_cursor (i + 1)
+  in
+  aux 0 0
 
 (* FIXME: They're all geometrically correct, but some rotations feel wrong. *)
 let cells_of_block block =
@@ -103,6 +120,8 @@ let cells_of_block block =
     | S, (Up | Down) -> [ (x, y); (x, y + 1); (x + 1, y + 1); (x + 1, y + 2) ]
     | S, (Left | Right) ->
         [ (x + 1, y + 1); (x + 2, y + 1); (x, y + 2); (x + 1, y + 2) ]
+    (* | Freckles, (Up | Down) -> [ (x + 1, y); (x, y + 1) ]
+       | Freckles, (Left | Right) -> [ (x, y); (x + 1, y + 1) ] *)
   in
   List.map (fun position -> { from_shape = block.shape; position }) coords
 

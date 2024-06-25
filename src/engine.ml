@@ -5,11 +5,10 @@ let init_block () =
   let pos = (width / 2, 0) in
   { shape; pos; orientation = Up }
 
-let init_board () = { cells = []; block = init_block () }
-
 let init_state () =
   {
-    board = init_board ();
+    cells = [];
+    block = init_block ();
     is_finished = false;
     is_paused = false;
     timer = 0;
@@ -52,30 +51,37 @@ let pre_update state =
     else
       let new_timer = 0 in
       (* Attempt to move block down one cell *)
-      let old_block = state.board.block in
+      let old_block = state.block in
       let x, y = old_block.pos in
       let candidate_block = { old_block with pos = (x, y + 1) } in
-      if is_valid_block state.board.cells candidate_block then
-        {
-          state with
-          timer = new_timer;
-          board = { state.board with block = candidate_block };
-        }
+      if is_valid_block state.cells candidate_block then
+        { state with timer = new_timer; block = candidate_block }
       else
         let new_cells, line_popped =
-          cells_of_block old_block @ state.board.cells |> demolish
+          cells_of_block old_block @ state.cells |> demolish
         in
         let spawned_block = init_block () in
-        let board = { cells = new_cells; block = spawned_block } in
         let new_speed =
           (* Acceleration *)
           if line_popped then state.speed - acceleration else state.speed
         in
         if is_valid_block new_cells spawned_block then
-          { state with board; timer = new_timer; speed = new_speed }
+          {
+            state with
+            cells = new_cells;
+            block = spawned_block;
+            timer = new_timer;
+            speed = new_speed;
+          }
         else
           (* Defeat *)
-          { state with board; timer = new_timer; is_finished = true }
+          {
+            state with
+            cells = new_cells;
+            block = spawned_block;
+            timer = new_timer;
+            is_finished = true;
+          }
 
 let io_update ~io state =
   if Controls.(is_on ~io quit) then raise Exit;
@@ -84,7 +90,7 @@ let io_update ~io state =
   else if Controls.(is_on ~io pause) then
     { state with is_paused = not state.is_paused }
   else
-    let old_block = state.board.block in
+    let old_block = state.block in
     let candidate_block =
       if Controls.(is_on ~io rotate) then
         let orientation =
@@ -107,9 +113,9 @@ let io_update ~io state =
       else old_block
     in
     let new_block =
-      if is_valid_block state.board.cells candidate_block then candidate_block
+      if is_valid_block state.cells candidate_block then candidate_block
       else old_block
     in
-    { state with board = { state.board with block = new_block } }
+    { state with block = new_block }
 
 let update ~io state = state |> pre_update |> io_update ~io

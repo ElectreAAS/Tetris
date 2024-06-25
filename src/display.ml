@@ -25,6 +25,8 @@ let color_of_shape shape =
   | J -> blue
   | Z -> red
   | S -> green
+  (* FIXME choose a better color. Maybe a glitching/changing effect? *)
+  | Freckles -> white
 
 (** Translate from game coordinates to rendering coordinates. *)
 let render_coords (x, y) =
@@ -84,6 +86,6 @@ let render ~io state =
   Window.set_size ~io (Size.v window_width window_height);
   Box.fill ~io ~color:Color.black (Window.box ~io);
   render_walls ~io;
-  List.iter (render_cell ~io) state.board.cells;
-  render_shadow ~io (shadow state.board.cells state.board.block);
-  render_block ~io state.board.block
+  List.iter (render_cell ~io) state.cells;
+  render_shadow ~io (shadow state.cells state.block);
+  render_block ~io state.block
