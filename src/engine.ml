@@ -63,7 +63,9 @@ let pre_update state =
         let spawned_block = init_block () in
         let new_speed =
           (* Acceleration *)
-          if line_popped then state.speed - acceleration else state.speed
+          (* FIXME: acceleration is linear in that speed goes down regularly, but that results in exponential felt speed. *)
+          if line_popped then max min_speed (state.speed - acceleration)
+          else state.speed
         in
         if is_valid_block new_cells spawned_block then
           {

@@ -3,6 +3,9 @@ let height = 24
 let base_speed = 60
 let acceleration = 4
 
+(* TUNE: this min speed feels rightly difficult, but maybe the acceleration isn't correct. *)
+let min_speed = 10
+
 type coord = int * int
 (** x, y.
     We count from the top left, going down and right. *)

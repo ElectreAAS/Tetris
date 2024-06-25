@@ -25,8 +25,8 @@ let color_of_shape shape =
   | J -> blue
   | Z -> red
   | S -> green
-  (* FIXME choose a better color. Maybe a glitching/changing effect? *)
-  | Freckles -> white
+(* FIXME choose a better color. Maybe a glitching/changing effect? *)
+(* | Freckles -> white *)
 
 (** Translate from game coordinates to rendering coordinates. *)
 let render_coords (x, y) =
