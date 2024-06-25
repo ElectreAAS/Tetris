@@ -85,5 +85,5 @@ let render ~io state =
   Box.fill ~io ~color:Color.black (Window.box ~io);
   render_walls ~io;
   List.iter (render_cell ~io) state.board.cells;
-  render_shadow ~io (shadow state.board state.board.block);
+  render_shadow ~io (shadow state.board.cells state.board.block);
   render_block ~io state.board.block

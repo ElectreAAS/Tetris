@@ -2,6 +2,7 @@ let width = 12
 let height = 24
 let number_of_shapes = 7
 let base_speed = 60
+let acceleration = 4
 
 type coord = int * int
 (** x, y.
@@ -105,12 +106,12 @@ let cells_of_block block =
   in
   List.map (fun position -> { from_shape = block.shape; position }) coords
 
-let is_valid_block board new_block =
+let is_valid_block cells new_block =
   List.for_all
     (fun c1 ->
       let x1, y1 = c1.position in
       x1 >= 0 && x1 < width && y1 >= 0 && y1 < height
-      && List.for_all (fun { position = p2; _ } -> (x1, y1) <> p2) board.cells)
+      && List.for_all (fun { position = p2; _ } -> (x1, y1) <> p2) cells)
     (cells_of_block new_block)
 
 let rec shadow state block =

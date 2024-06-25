@@ -5,11 +5,7 @@ let init_block () =
   let pos = (width / 2, 0) in
   { shape; pos; orientation = Up }
 
-let init_board () =
-  {
-    cells = [ { from_shape = J; position = (0, height - 1) } ];
-    block = init_block ();
-  }
+let init_board () = { cells = []; block = init_block () }
 
 let init_state () =
   {
@@ -22,8 +18,8 @@ let init_state () =
 
 let demolish cells =
   (* OPTIM: this function is wildly inefficient, but the search space is so small it shouldn't matter. *)
-  let rec aux i cells =
-    if i < 0 then cells
+  let rec aux i cells popped =
+    if i < 0 then (cells, popped)
     else
       let line, others =
         List.partition
@@ -42,10 +38,10 @@ let demolish cells =
               { c with position = (x, new_y) })
             others
         in
-        aux i new_cells
-      else aux (i - 1) cells
+        aux i new_cells true
+      else aux (i - 1) cells popped
   in
-  aux height cells
+  aux height cells false
 
 (** This function is called on each frame, before considering player actions, to move the timer by 1. *)
 let pre_update state =
@@ -59,24 +55,33 @@ let pre_update state =
       let old_block = state.board.block in
       let x, y = old_block.pos in
       let candidate_block = { old_block with pos = (x, y + 1) } in
-      if is_valid_block state.board candidate_block then
+      if is_valid_block state.board.cells candidate_block then
         {
           state with
           timer = new_timer;
           board = { state.board with block = candidate_block };
         }
       else
-        let new_cells =
+        let new_cells, line_popped =
           cells_of_block old_block @ state.board.cells |> demolish
         in
         let spawned_block = init_block () in
         let board = { cells = new_cells; block = spawned_block } in
-        { state with board; timer = new_timer }
+        let new_speed =
+          (* Acceleration *)
+          if line_popped then state.speed - acceleration else state.speed
+        in
+        if is_valid_block new_cells spawned_block then
+          { state with board; timer = new_timer; speed = new_speed }
+        else
+          (* Defeat *)
+          { state with board; timer = new_timer; is_finished = true }
 
 let io_update ~io state =
   if Controls.(is_on ~io quit) then raise Exit;
 
-  if Controls.(is_on ~io pause) then
+  if state.is_finished then state
+  else if Controls.(is_on ~io pause) then
     { state with is_paused = not state.is_paused }
   else
     let old_block = state.board.block in
@@ -102,7 +107,7 @@ let io_update ~io state =
       else old_block
     in
     let new_block =
-      if is_valid_block state.board candidate_block then candidate_block
+      if is_valid_block state.board.cells candidate_block then candidate_block
       else old_block
     in
     { state with board = { state.board with block = new_block } }
