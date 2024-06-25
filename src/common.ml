@@ -21,7 +21,7 @@ type shape =
       (** Origin point is marked with X or ·
           shape up     right     down     left
           --------------------------------------
-                X       ·
+                X        ·
             I   #      ####
                 #
                 #
@@ -33,16 +33,15 @@ type shape =
             T      ###    ##        ###      ##
                           #          #        #
           --------------------------------------
-                 ·#      ·         X#       · #
+                  X       ·        #X        ·#
             L     #      ###        #       ###
                   ##     #          #
           --------------------------------------
-                                  ·
-                 · #    ·          ##       ·
-            J      #     #         #        ###
+                   X               X#        ·
+            J      #     #·        #        ###
                   ##     ###       #          #
           --------------------------------------
-                 ·#     ·
+                 ·#      ·
             Z    ##     ##
                  #       ##
           --------------------------------------
@@ -93,7 +92,6 @@ let random_shape () =
   in
   aux 0 0
 
-(* FIXME: They're all geometrically correct, but some rotations feel wrong. *)
 let cells_of_block block =
   let x, y = block.pos in
   let coords =
@@ -101,25 +99,23 @@ let cells_of_block block =
     (* From the top-left, going right then down, normal reading order. *)
     | I, (Up | Down) -> [ (x, y); (x, y + 1); (x, y + 2); (x, y + 3) ]
     | I, (Left | Right) ->
-        [ (x - 1, y + 1); (x, y + 1); (x + 1, y + 1); (x + 2, y + 1) ]
+        [ (x - 2, y + 1); (x - 1, y + 1); (x, y + 1); (x + 1, y + 1) ]
     | O, _ -> [ (x, y); (x + 1, y); (x, y + 1); (x + 1, y + 1) ]
     | T, Up -> [ (x + 1, y); (x, y + 1); (x + 1, y + 1); (x + 2, y + 1) ]
     | T, Right -> [ (x + 1, y); (x + 1, y + 1); (x + 2, y + 1); (x + 1, y + 2) ]
     | T, Down -> [ (x, y + 1); (x + 1, y + 1); (x + 2, y + 1); (x + 1, y + 2) ]
     | T, Left -> [ (x + 1, y); (x, y + 1); (x + 1, y + 1); (x + 1, y + 2) ]
-    | L, Up -> [ (x + 1, y); (x + 1, y + 1); (x + 1, y + 2); (x + 2, y + 2) ]
-    | L, Right -> [ (x, y + 1); (x + 1, y + 1); (x + 2, y + 1); (x, y + 2) ]
-    | L, Down -> [ (x, y); (x + 1, y); (x + 1, y + 1); (x + 1, y + 2) ]
-    | L, Left -> [ (x + 2, y); (x, y + 1); (x + 1, y + 1); (x + 2, y + 1) ]
-    | J, Up -> [ (x + 2, y); (x + 2, y + 1); (x + 1, y + 2); (x + 2, y + 2) ]
-    | J, Right ->
-        [ (x + 1, y + 1); (x + 1, y + 2); (x + 2, y + 2); (x + 3, y + 2) ]
-    | J, Down ->
-        [ (x + 1, y + 1); (x + 2, y + 1); (x + 1, y + 2); (x + 1, y + 3) ]
-    | J, Left -> [ (x, y + 1); (x + 1, y + 1); (x + 2, y + 1); (x + 2, y + 2) ]
+    | L, Up -> [ (x, y); (x, y + 1); (x, y + 2); (x + 1, y + 2) ]
+    | L, Right -> [ (x - 1, y + 1); (x, y + 1); (x + 1, y + 1); (x - 1, y + 2) ]
+    | L, Down -> [ (x - 1, y); (x, y); (x, y + 1); (x, y + 2) ]
+    | L, Left -> [ (x + 1, y); (x - 1, y + 1); (x, y + 1); (x + 1, y + 1) ]
+    | J, Up -> [ (x, y); (x, y + 1); (x, y + 2); (x - 1, y + 2) ]
+    | J, Right -> [ (x - 1, y); (x - 1, y + 1); (x, y + 1); (x + 1, y + 1) ]
+    | J, Down -> [ (x, y); (x + 1, y); (x, y + 1); (x, y + 2) ]
+    | J, Left -> [ (x - 1, y + 1); (x, y + 1); (x + 1, y + 1); (x + 1, y + 2) ]
     | Z, (Up | Down) -> [ (x + 1, y); (x, y + 1); (x + 1, y + 1); (x, y + 2) ]
     | Z, (Left | Right) ->
-        [ (x, y + 1); (x + 1, y + 1); (x + 1, y + 2); (x + 2, y + 2) ]
+        [ (x - 1, y + 1); (x, y + 1); (x, y + 2); (x + 1, y + 2) ]
     | S, (Up | Down) -> [ (x, y); (x, y + 1); (x + 1, y + 1); (x + 1, y + 2) ]
     | S, (Left | Right) ->
         [ (x + 1, y + 1); (x + 2, y + 1); (x, y + 2); (x + 1, y + 2) ]
