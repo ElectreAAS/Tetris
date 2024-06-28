@@ -29,7 +29,7 @@ type shape =
                   X#
             O     ##
           --------------------------------------
-                   ·#    ·#         ·        ·#
+                    X     X          ·        X
             T      ###    ##        ###      ##
                           #          #        #
           --------------------------------------
@@ -45,22 +45,23 @@ type shape =
             Z    ##     ##
                  #       ##
           --------------------------------------
-                 X      ·
+                 #·      ·
             S    ##      ##
                   #     ##
           --------------------------------------
        Freckles  ·#     X
                  #       #
   *)
-(* | Freckles *)
+  | Freckles
 
 type direction = Up | Down | Left | Right
 type cell = { from_shape : shape; position : coord }
 type block = { shape : shape; pos : coord; orientation : direction }
 
-type state = {
+type game_state = {
   cells : cell list;
   block : block;
+  next_blocks : block list;
   is_finished : bool;
   is_paused : bool;
   timer : int;  (** Number of frames that have passed since last move. *)
@@ -68,29 +69,28 @@ type state = {
       (** Blocks move every [speed] frames. Lower this number to make them go faster. *)
 }
 
-let weighted_shapes =
-  [|
-    (I, 10);
-    (O, 10);
-    (T, 10);
-    (L, 10);
-    (J, 10);
-    (Z, 10);
-    (S, 10);
-    (* (Freckles, 1); *)
-  |]
+type animation_state = { foo : int }
+type control_state = { cool_stuff : bool }
 
-let total_weights =
-  Array.fold_left (fun sum (_, n) -> sum + n) 0 weighted_shapes
+let all_shapes = [ I; O; T; L; J; Z; S ]
 
-let random_shape () =
-  let n = Random.int total_weights in
-  let rec aux cursor i =
-    let shape, weight = weighted_shapes.(i) in
-    let new_cursor = cursor + weight in
-    if new_cursor >= n then shape else aux new_cursor (i + 1)
-  in
-  aux 0 0
+(*
+   let weighted_shapes =
+     [|
+       (I, 10); (O, 10); (T, 10); (L, 10); (J, 10); (Z, 10); (S, 10); (Freckles, 1);
+     |]
+
+   let total_weights =
+     Array.fold_left (fun sum (_, n) -> sum + n) 0 weighted_shapes
+
+   let random_shape () =
+     let n = Random.int total_weights in
+     let rec aux cursor i =
+       let shape, weight = weighted_shapes.(i) in
+       let new_cursor = cursor + weight in
+       if new_cursor >= n then shape else aux new_cursor (i + 1)
+     in
+     aux 0 0 *)
 
 let cells_of_block block =
   let x, y = block.pos in
@@ -101,10 +101,10 @@ let cells_of_block block =
     | I, (Left | Right) ->
         [ (x - 2, y + 1); (x - 1, y + 1); (x, y + 1); (x + 1, y + 1) ]
     | O, _ -> [ (x, y); (x + 1, y); (x, y + 1); (x + 1, y + 1) ]
-    | T, Up -> [ (x + 1, y); (x, y + 1); (x + 1, y + 1); (x + 2, y + 1) ]
-    | T, Right -> [ (x + 1, y); (x + 1, y + 1); (x + 2, y + 1); (x + 1, y + 2) ]
-    | T, Down -> [ (x, y + 1); (x + 1, y + 1); (x + 2, y + 1); (x + 1, y + 2) ]
-    | T, Left -> [ (x + 1, y); (x, y + 1); (x + 1, y + 1); (x + 1, y + 2) ]
+    | T, Up -> [ (x, y); (x - 1, y + 1); (x, y + 1); (x + 1, y + 1) ]
+    | T, Right -> [ (x, y); (x, y + 1); (x + 1, y + 1); (x, y + 2) ]
+    | T, Down -> [ (x - 1, y + 1); (x, y + 1); (x + 1, y + 1); (x, y + 2) ]
+    | T, Left -> [ (x, y); (x - 1, y + 1); (x, y + 1); (x, y + 2) ]
     | L, Up -> [ (x, y); (x, y + 1); (x, y + 2); (x + 1, y + 2) ]
     | L, Right -> [ (x - 1, y + 1); (x, y + 1); (x + 1, y + 1); (x - 1, y + 2) ]
     | L, Down -> [ (x - 1, y); (x, y); (x, y + 1); (x, y + 2) ]
@@ -116,11 +116,11 @@ let cells_of_block block =
     | Z, (Up | Down) -> [ (x + 1, y); (x, y + 1); (x + 1, y + 1); (x, y + 2) ]
     | Z, (Left | Right) ->
         [ (x - 1, y + 1); (x, y + 1); (x, y + 2); (x + 1, y + 2) ]
-    | S, (Up | Down) -> [ (x, y); (x, y + 1); (x + 1, y + 1); (x + 1, y + 2) ]
+    | S, (Up | Down) -> [ (x - 1, y); (x - 1, y + 1); (x, y + 1); (x, y + 2) ]
     | S, (Left | Right) ->
-        [ (x + 1, y + 1); (x + 2, y + 1); (x, y + 2); (x + 1, y + 2) ]
-    (* | Freckles, (Up | Down) -> [ (x + 1, y); (x, y + 1) ]
-       | Freckles, (Left | Right) -> [ (x, y); (x + 1, y + 1) ] *)
+        [ (x, y + 1); (x + 1, y + 1); (x - 1, y + 2); (x, y + 2) ]
+    | Freckles, (Up | Down) -> [ (x + 1, y); (x, y + 1) ]
+    | Freckles, (Left | Right) -> [ (x, y); (x + 1, y + 1) ]
   in
   List.map (fun position -> { from_shape = block.shape; position }) coords
 
@@ -138,3 +138,28 @@ let rec shadow state block =
   let candidate_block = { block with pos = (x, y + 1) } in
   if is_valid_block state candidate_block then shadow state candidate_block
   else block
+
+module List = struct
+  include List
+
+  (** [pick l n] returns a pair of the [n]th element of [l], and [l] deprived of that element. *)
+  let pick l n =
+    let rec aux before n l =
+      match (l, n) with
+      | x :: after, 0 -> (x, before @ after)
+      | x :: after, _ -> aux (before @ [ x ]) (n - 1) after
+      | [], _ -> raise @@ Failure "List.pick: list is too short"
+    in
+    aux [] n l
+
+  (** [shuffle l] returns a list containing the elements of [l] in a random order. *)
+  let shuffle l =
+    let init_len = List.length l in
+    let rec aux src len dst =
+      if len = 0 then dst
+      else
+        let x, src' = pick src (Random.int len) in
+        aux src' (len - 1) (x :: dst)
+    in
+    aux l init_len []
+end

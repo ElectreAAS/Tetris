@@ -1,1 +1,1 @@
-val render : io:Gamelle.io -> Common.state -> unit
+val display : io:Gamelle.io -> Common.game_state -> unit
