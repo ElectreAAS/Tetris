@@ -8,10 +8,6 @@ let register_flash anim rows =
   | Nothing -> Ongoing { time_elapsed = 0; rows }
   | _ -> failwith "Attempted to register a flash while one was going on"
 
-let pop_flash = function
-  | Nothing | Ongoing _ -> None
-  | Finished rows -> Some (Nothing, rows)
-
 let is_busy = function Ongoing _ -> true | _ -> false
 
 let go ~io anim =

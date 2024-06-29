@@ -76,7 +76,7 @@ type animation_state =
   | Ongoing of animation_data
   | Finished of int list
 
-type control_state = { cool_stuff : bool }
+type control_state = { holding_timer : int }
 
 (** [pick l n] returns a pair of the [n]th element of list [l], and [l] deprived of that element. *)
 let pick l n =

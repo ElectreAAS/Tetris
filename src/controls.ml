@@ -1,46 +1,29 @@
 open Common
 open Gamelle
 
-let long_press_delay = 0.25
+let long_press_delay = 8
 
 type action =
   | Quit
   | Pause
   | Nothing
   | Go_left
-  | Hold_left
   | Go_right
-  | Hold_right
-  | Go_down
-  | Hold_down
+  | Instant_fall
+  | Quick_fall
   | Rotate
 
-let quit = Quit
-let pause = Pause
-let nothing = Nothing
-let go_left = Go_left
-let hold_left = Hold_left
-let go_right = Go_right
-let hold_right = Hold_right
-let go_down = Go_down
-let hold_down = Hold_down
-let rotate = Rotate
-let init () = { cool_stuff = true }
+let init () = { holding_timer = 0 }
 
-let is_on ~io _ = function
-  | Quit -> Input.is_down ~io `escape
-  | Go_left -> Input.is_down ~io `arrow_left
-  | Go_right -> Input.is_down ~io `arrow_right
-  | Go_down -> Input.is_pressed ~io `arrow_down
-  | Rotate -> Input.is_down ~io `arrow_up
-  | Pause -> Input.is_down ~io `space
-  | _ -> failwith "not implemented!" (* TODO *)
-
-let poll ~io _ =
-  if Input.is_down ~io `escape then Quit
-  else if Input.is_down ~io `arrow_left then Go_left
-  else if Input.is_down ~io `arrow_right then Go_right
-  else if Input.is_pressed ~io `arrow_down then Go_down
-  else if Input.is_down ~io `arrow_up then Rotate
-  else if Input.is_down ~io `space then Pause
-  else failwith "not implemented!" (* TODO *)
+let poll ~io controls =
+  let open Input in
+  if is_pressed ~io `escape then (Quit, controls)
+  else if is_down ~io `space then (Pause, controls)
+  else if is_down ~io `arrow_up then (Rotate, controls)
+  else if is_down ~io `arrow_left then (Go_left, controls)
+  else if is_down ~io `arrow_right then (Go_right, controls)
+  else if is_pressed ~io `arrow_down then
+    (Quick_fall, { holding_timer = controls.holding_timer + 1 })
+  else if is_up ~io `arrow_down && controls.holding_timer < long_press_delay
+  then (Instant_fall, { holding_timer = 0 })
+  else (Nothing, { holding_timer = 0 })

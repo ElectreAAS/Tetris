@@ -7,4 +7,4 @@ val update :
   game_state ->
   control_state ->
   animation_state ->
-  game_state * animation_state
+  game_state * control_state * animation_state
