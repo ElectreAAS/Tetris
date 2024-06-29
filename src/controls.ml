@@ -1,3 +1,4 @@
+open Common
 open Gamelle
 
 let long_press_delay = 0.25
@@ -24,8 +25,9 @@ let hold_right = Hold_right
 let go_down = Go_down
 let hold_down = Hold_down
 let rotate = Rotate
+let init () = { cool_stuff = true }
 
-let is_on ~io = function
+let is_on ~io _ = function
   | Quit -> Input.is_down ~io `escape
   | Go_left -> Input.is_down ~io `arrow_left
   | Go_right -> Input.is_down ~io `arrow_right
@@ -34,7 +36,7 @@ let is_on ~io = function
   | Pause -> Input.is_down ~io `space
   | _ -> failwith "not implemented!" (* TODO *)
 
-let poll ~io =
+let poll ~io _ =
   if Input.is_down ~io `escape then Quit
   else if Input.is_down ~io `arrow_left then Go_left
   else if Input.is_down ~io `arrow_right then Go_right

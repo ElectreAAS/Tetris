@@ -1,3 +1,5 @@
+open Common
+
 val long_press_delay : float
 (** In seconds. Delay after which a press is understood as a 'hold' instead of a short press. *)
 
@@ -23,5 +25,6 @@ val hold_right : action
 val go_down : action
 val hold_down : action
 val rotate : action
-val is_on : io:Gamelle.io -> action -> bool
-val poll : io:Gamelle.io -> action
+val init : unit -> control_state
+val is_on : io:Gamelle.io -> control_state -> action -> bool
+val poll : io:Gamelle.io -> control_state -> action

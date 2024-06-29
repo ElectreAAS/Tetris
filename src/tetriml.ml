@@ -1,6 +1,13 @@
+let full_init () =
+  Random.self_init ();
+  (Engine.init (), Controls.init (), Anim.init ())
+
 let () =
   Random.self_init ();
-  Gamelle.run (Engine.init_state ()) @@ fun ~io state ->
-  let new_state = Engine.update ~io state in
-  Display.display ~io new_state;
-  new_state
+  Gamelle.run (full_init ()) @@ fun ~io (game, controls, anim) ->
+  let game, anim =
+    if Anim.is_busy anim then (game, anim)
+    else Engine.update ~io game controls anim
+  in
+  let anim = Render.display ~io game anim in
+  (game, controls, anim)

@@ -27,6 +27,7 @@ let window_width = float (left_width + width + right_width) *. cell_size
 let window_height = float (height + 1) *. cell_size
 let bg_color = Color.black
 let wall_color = Color.gray
+let flash_color = Color.white
 
 (* FIXME: these colors work well with a black background, but with a white one not so much. *)
 let color_of_shape shape =
@@ -106,12 +107,7 @@ let d_next_block ~io future =
       d_box ~io (x - 13, y + 4) (color_of_shape c.from_shape))
     cells
 
-let display ~io state =
-  Window.set_size ~io (Size.v window_width window_height);
-  Box.fill ~io ~color:Color.white (Window.box ~io);
-  d_walls ~io;
-  d_background ~io;
-  d_next_block ~io (List.hd state.next_blocks);
-  List.iter (d_cell ~io) state.cells;
-  d_shadow ~io (shadow state.cells state.block);
-  d_block ~io state.block
+let a_flash_row ~io y =
+  for x = 0 to width - 1 do
+    d_box ~io (x, y) flash_color
+  done

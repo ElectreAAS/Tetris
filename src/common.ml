@@ -69,10 +69,38 @@ type game_state = {
       (** Blocks move every [speed] frames. Lower this number to make them go faster. *)
 }
 
-type animation_state = { foo : int }
+type animation_data = { time_elapsed : int; rows : int list }
+
+type animation_state =
+  | Nothing
+  | Ongoing of animation_data
+  | Finished of int list
+
 type control_state = { cool_stuff : bool }
 
+(** [pick l n] returns a pair of the [n]th element of list [l], and [l] deprived of that element. *)
+let pick l n =
+  let rec aux before n l =
+    match (l, n) with
+    | x :: after, 0 -> (x, before @ after)
+    | x :: after, _ -> aux (before @ [ x ]) (n - 1) after
+    | [], _ -> raise @@ Failure "List.pick: list is too short"
+  in
+  aux [] n l
+
+(** [shuffle l] returns a list containing the elements of [l] in a random order. *)
+let shuffle l =
+  let init_len = List.length l in
+  let rec aux src len dst =
+    if len = 0 then dst
+    else
+      let x, src' = pick src (Random.int len) in
+      aux src' (len - 1) (x :: dst)
+  in
+  aux l init_len []
+
 let all_shapes = [ I; O; T; L; J; Z; S ]
+let shuffled_shapes () = shuffle all_shapes
 
 (*
    let weighted_shapes =
@@ -139,27 +167,13 @@ let rec shadow state block =
   if is_valid_block state candidate_block then shadow state candidate_block
   else block
 
-module List = struct
-  include List
-
-  (** [pick l n] returns a pair of the [n]th element of [l], and [l] deprived of that element. *)
-  let pick l n =
-    let rec aux before n l =
-      match (l, n) with
-      | x :: after, 0 -> (x, before @ after)
-      | x :: after, _ -> aux (before @ [ x ]) (n - 1) after
-      | [], _ -> raise @@ Failure "List.pick: list is too short"
-    in
-    aux [] n l
-
-  (** [shuffle l] returns a list containing the elements of [l] in a random order. *)
-  let shuffle l =
-    let init_len = List.length l in
-    let rec aux src len dst =
-      if len = 0 then dst
-      else
-        let x, src' = pick src (Random.int len) in
-        aux src' (len - 1) (x :: dst)
-    in
-    aux l init_len []
-end
+let pp_list pp fmt l =
+  let rec aux = function
+    | [] -> Format.fprintf fmt "]"
+    | [ x ] -> Format.fprintf fmt "%a]" pp x
+    | x :: xs ->
+        Format.fprintf fmt "%a; " pp x;
+        aux xs
+  in
+  Format.fprintf fmt "[";
+  aux l
