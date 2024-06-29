@@ -160,11 +160,15 @@ let is_valid_block cells new_block =
       && List.for_all (fun { position = p2; _ } -> (x1, y1) <> p2) cells)
     (cells_of_block new_block)
 
-let rec shadow state block =
+let validate_block game new_block =
+  if is_valid_block game.cells new_block then { game with block = new_block }
+  else game
+
+let rec shadow cells block =
   (* We assume the block is valid *)
   let x, y = block.pos in
   let candidate_block = { block with pos = (x, y + 1) } in
-  if is_valid_block state candidate_block then shadow state candidate_block
+  if is_valid_block cells candidate_block then shadow cells candidate_block
   else block
 
 let pp_list pp fmt l =

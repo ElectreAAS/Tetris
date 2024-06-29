@@ -103,15 +103,12 @@ let pre_update game anim =
           let anim = Anim.register_flash anim full_rows in
           ({ game with cells = new_cells }, anim)
 
-let try_move game old_block new_block =
-  let new_block =
-    if is_valid_block game.cells new_block then new_block else old_block
-  in
-  { game with block = new_block }
-
 let io_update ~io controls game =
-  (* if game.is_finished then (game, controls)
-     else *)
+  let try_move f =
+    let old_block = game.block in
+    let new_block = { old_block with pos = f old_block.pos } in
+    validate_block game new_block
+  in
   match Controls.poll ~io controls with
   | Quit, _ -> raise Exit
   | Pause, _ -> ({ game with is_paused = not game.is_paused }, controls)
@@ -127,22 +124,11 @@ let io_update ~io controls game =
         in
         { old_block with orientation }
       in
-      (try_move game old_block new_block, controls)
-  | Go_left, controls ->
-      let old_block = game.block in
-      let old_x, old_y = old_block.pos in
-      let new_block = { old_block with pos = (old_x - 1, old_y) } in
-      (try_move game old_block new_block, controls)
-  | Go_right, controls ->
-      let old_block = game.block in
-      let old_x, old_y = old_block.pos in
-      let new_block = { old_block with pos = (old_x + 1, old_y) } in
-      (try_move game old_block new_block, controls)
-  | Quick_fall, controls ->
-      let old_block = game.block in
-      let old_x, old_y = old_block.pos in
-      let new_block = { old_block with pos = (old_x, old_y + 1) } in
-      (try_move game old_block new_block, controls)
+      (validate_block game new_block, controls)
+  | Go_left, controls -> (try_move (fun (x, y) -> (x - 1, y)), controls)
+  | Go_right, controls -> (try_move (fun (x, y) -> (x + 1, y)), controls)
+  (* TUNE: quick fall feels too quick, maybe move on some frames but not others? *)
+  | Quick_fall, controls -> (try_move (fun (x, y) -> (x, y + 1)), controls)
   | Instant_fall, controls ->
       let new_block = shadow game.cells game.block in
       ({ game with block = new_block; timer = game.speed }, controls)
