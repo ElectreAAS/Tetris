@@ -4,7 +4,7 @@ open Display
 let display_static ~io =
   let open Gamelle in
   Window.set_size ~io (Size.v window_width window_height);
-  Box.fill ~io ~color:Color.white (Window.box ~io);
+  Box.fill ~io ~color:bg_color (Window.box ~io);
   d_background ~io;
   d_walls ~io
 

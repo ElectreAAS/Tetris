@@ -54,8 +54,15 @@ type shape =
   *)
   | Freckles
 
-type direction = Up | Down | Left | Right
-type cell = { from_shape : shape; position : coord }
+type direction = Up | Right | Down | Left
+
+type cell = {
+  from_shape : shape;
+  position : coord;
+  (* up right down left *)
+  border : bool * bool * bool * bool;
+}
+
 type block = { shape : shape; pos : coord; orientation : direction }
 
 type game_state = {
@@ -125,32 +132,153 @@ let cells_of_block block =
   let coords =
     match (block.shape, block.orientation) with
     (* From the top-left, going right then down, normal reading order. *)
-    | I, (Up | Down) -> [ (x, y); (x, y + 1); (x, y + 2); (x, y + 3) ]
+    | I, (Up | Down) ->
+        [
+          ((x, y), (true, true, false, true));
+          ((x, y + 1), (false, true, false, true));
+          ((x, y + 2), (false, true, false, true));
+          ((x, y + 3), (false, true, true, true));
+        ]
     | I, (Left | Right) ->
-        [ (x - 2, y + 1); (x - 1, y + 1); (x, y + 1); (x + 1, y + 1) ]
-    | O, _ -> [ (x, y); (x + 1, y); (x, y + 1); (x + 1, y + 1) ]
-    | T, Up -> [ (x, y); (x - 1, y + 1); (x, y + 1); (x + 1, y + 1) ]
-    | T, Right -> [ (x, y); (x, y + 1); (x + 1, y + 1); (x, y + 2) ]
-    | T, Down -> [ (x - 1, y + 1); (x, y + 1); (x + 1, y + 1); (x, y + 2) ]
-    | T, Left -> [ (x, y); (x - 1, y + 1); (x, y + 1); (x, y + 2) ]
-    | L, Up -> [ (x, y); (x, y + 1); (x, y + 2); (x + 1, y + 2) ]
-    | L, Right -> [ (x - 1, y + 1); (x, y + 1); (x + 1, y + 1); (x - 1, y + 2) ]
-    | L, Down -> [ (x - 1, y); (x, y); (x, y + 1); (x, y + 2) ]
-    | L, Left -> [ (x + 1, y); (x - 1, y + 1); (x, y + 1); (x + 1, y + 1) ]
-    | J, Up -> [ (x, y); (x, y + 1); (x, y + 2); (x - 1, y + 2) ]
-    | J, Right -> [ (x - 1, y); (x - 1, y + 1); (x, y + 1); (x + 1, y + 1) ]
-    | J, Down -> [ (x, y); (x + 1, y); (x, y + 1); (x, y + 2) ]
-    | J, Left -> [ (x - 1, y + 1); (x, y + 1); (x + 1, y + 1); (x + 1, y + 2) ]
-    | Z, (Up | Down) -> [ (x + 1, y); (x, y + 1); (x + 1, y + 1); (x, y + 2) ]
+        [
+          ((x - 2, y + 1), (true, false, true, true));
+          ((x - 1, y + 1), (true, false, true, false));
+          ((x, y + 1), (true, false, true, false));
+          ((x + 1, y + 1), (true, true, true, false));
+        ]
+    | O, _ ->
+        [
+          ((x, y), (true, false, false, true));
+          ((x + 1, y), (true, true, false, false));
+          ((x, y + 1), (false, false, true, true));
+          ((x + 1, y + 1), (false, true, true, false));
+        ]
+    | T, Up ->
+        [
+          ((x, y), (true, true, false, true));
+          ((x - 1, y + 1), (true, false, true, true));
+          ((x, y + 1), (false, false, true, false));
+          ((x + 1, y + 1), (true, true, true, false));
+        ]
+    | T, Right ->
+        [
+          ((x, y), (true, true, false, true));
+          ((x, y + 1), (false, false, false, true));
+          ((x + 1, y + 1), (true, true, true, false));
+          ((x, y + 2), (false, true, true, true));
+        ]
+    | T, Down ->
+        [
+          ((x - 1, y + 1), (true, false, true, true));
+          ((x, y + 1), (true, false, false, false));
+          ((x + 1, y + 1), (true, true, true, false));
+          ((x, y + 2), (false, true, true, true));
+        ]
+    | T, Left ->
+        [
+          ((x, y), (true, true, false, true));
+          ((x - 1, y + 1), (true, false, true, true));
+          ((x, y + 1), (false, true, false, false));
+          ((x, y + 2), (false, true, true, true));
+        ]
+    | L, Up ->
+        [
+          ((x, y), (true, true, false, true));
+          ((x, y + 1), (false, true, false, true));
+          ((x, y + 2), (false, false, true, true));
+          ((x + 1, y + 2), (true, true, true, false));
+        ]
+    | L, Right ->
+        [
+          ((x - 1, y + 1), (true, false, false, true));
+          ((x, y + 1), (true, false, true, false));
+          ((x + 1, y + 1), (true, true, true, false));
+          ((x - 1, y + 2), (false, true, true, true));
+        ]
+    | L, Down ->
+        [
+          ((x - 1, y), (true, false, true, true));
+          ((x, y), (true, true, false, false));
+          ((x, y + 1), (false, true, false, true));
+          ((x, y + 2), (false, true, true, true));
+        ]
+    | L, Left ->
+        [
+          ((x + 1, y), (true, true, false, true));
+          ((x - 1, y + 1), (true, false, true, true));
+          ((x, y + 1), (true, false, true, false));
+          ((x + 1, y + 1), (false, true, true, false));
+        ]
+    | J, Up ->
+        [
+          ((x, y), (true, true, false, true));
+          ((x, y + 1), (false, true, false, true));
+          ((x - 1, y + 2), (true, false, true, true));
+          ((x, y + 2), (false, true, true, false));
+        ]
+    | J, Right ->
+        [
+          ((x - 1, y), (true, true, false, true));
+          ((x - 1, y + 1), (false, false, true, true));
+          ((x, y + 1), (true, false, true, false));
+          ((x + 1, y + 1), (true, true, true, false));
+        ]
+    | J, Down ->
+        [
+          ((x, y), (true, false, false, true));
+          ((x + 1, y), (true, true, true, false));
+          ((x, y + 1), (false, true, false, true));
+          ((x, y + 2), (false, true, true, true));
+        ]
+    | J, Left ->
+        [
+          ((x - 1, y + 1), (true, false, true, true));
+          ((x, y + 1), (true, false, true, false));
+          ((x + 1, y + 1), (true, true, false, false));
+          ((x + 1, y + 2), (false, true, true, true));
+        ]
+    | Z, (Up | Down) ->
+        [
+          ((x + 1, y), (true, true, false, true));
+          ((x, y + 1), (true, false, false, true));
+          ((x + 1, y + 1), (false, true, true, false));
+          ((x, y + 2), (false, true, true, true));
+        ]
     | Z, (Left | Right) ->
-        [ (x - 1, y + 1); (x, y + 1); (x, y + 2); (x + 1, y + 2) ]
-    | S, (Up | Down) -> [ (x - 1, y); (x - 1, y + 1); (x, y + 1); (x, y + 2) ]
+        [
+          ((x - 1, y + 1), (true, false, true, true));
+          ((x, y + 1), (true, true, false, false));
+          ((x, y + 2), (false, false, true, true));
+          ((x + 1, y + 2), (true, true, true, false));
+        ]
+    | S, (Up | Down) ->
+        [
+          ((x - 1, y), (true, true, false, true));
+          ((x - 1, y + 1), (false, false, true, true));
+          ((x, y + 1), (true, true, false, false));
+          ((x, y + 2), (false, true, true, true));
+        ]
     | S, (Left | Right) ->
-        [ (x, y + 1); (x + 1, y + 1); (x - 1, y + 2); (x, y + 2) ]
-    | Freckles, (Up | Down) -> [ (x + 1, y); (x, y + 1) ]
-    | Freckles, (Left | Right) -> [ (x, y); (x + 1, y + 1) ]
+        [
+          ((x, y + 1), (true, false, false, true));
+          ((x + 1, y + 1), (true, true, true, false));
+          ((x - 1, y + 2), (true, false, true, true));
+          ((x, y + 2), (false, true, true, false));
+        ]
+    | Freckles, (Up | Down) ->
+        [
+          ((x + 1, y), (true, true, true, true));
+          ((x, y + 1), (true, true, true, true));
+        ]
+    | Freckles, (Left | Right) ->
+        [
+          ((x, y), (true, true, true, true));
+          ((x + 1, y + 1), (true, true, true, true));
+        ]
   in
-  List.map (fun position -> { from_shape = block.shape; position }) coords
+  List.map
+    (fun (position, border) -> { from_shape = block.shape; position; border })
+    coords
 
 let is_valid_block cells new_block =
   List.for_all
