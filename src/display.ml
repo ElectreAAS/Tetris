@@ -25,7 +25,7 @@ let cell_size = 40.0
 
 let window_width = float (left_width + width + right_width) *. cell_size
 let window_height = float (height + 1) *. cell_size
-let bg_color = Color.rgb 254 203 144
+let bg_color = Color.rgb 255 237 208
 let wall_color = Color.rgb 13 17 47
 let flash_color = Color.white
 let text_color = Color.black
@@ -34,18 +34,26 @@ let color_of_shape shape =
   let open Color in
   match shape with
   | I -> rgb 0x9b 0xf6 0xff (* cyan *)
-  | O -> rgb 0xfd 0xff 0xb6 (* yellow *)
+  | O -> rgb 254 215 97 (* yellow *)
   | T -> rgb 0xbd 0xb2 0xff (* purple *)
-  | L -> rgb 0xff 0xd6 0xa5 (* orange *)
+  | L -> rgb 250 193 102 (* orange *)
   | J -> rgb 0xa0 0xc4 0xff (* blue *)
   | Z -> rgb 0xff 0xad 0xad (* red *)
   | S -> rgb 0xca 0xff 0xbf (* green *)
   (* FIXME choose a better color. Maybe a glitching/changing effect? *)
   | Freckles -> white
 
-let border_color_of_shape _shape =
+let border_color_of_shape shape =
   let open Color in
-  black
+  match shape with
+  | I -> rgb 31 132 141
+  | O -> rgb 186 186 71
+  | T -> rgb 115 103 174
+  | L -> rgb 193 154 107
+  | J -> rgb 83 116 169
+  | Z -> rgb 169 95 96
+  | S -> rgb 126 175 116
+  | Freckles -> rgb 174 174 174
 
 (** Translate from game coordinates to rendering coordinates. *)
 let translate_xy (x, y) =
@@ -64,7 +72,6 @@ let d_box ~io (x, y) ?border color =
   let b_color, b_up, b_right, b_down, b_left =
     Option.value border ~default:(color, false, false, false, false)
   in
-  (* up *)
   (if b_up then
      let up =
        Segment.v grid_coord
@@ -72,7 +79,6 @@ let d_box ~io (x, y) ?border color =
      in
      Segment.draw ~io ~color:b_color up);
   (if b_right then
-     (* right *)
      let right =
        Segment.v
          (Size.v (grid_coord.x +. cell_size -. 1.) grid_coord.y)
@@ -80,8 +86,7 @@ let d_box ~io (x, y) ?border color =
             (grid_coord.x +. cell_size -. 1.)
             (grid_coord.y +. cell_size -. 1.))
      in
-     Segment.draw ~io ~color:(if b_right then b_color else color) right);
-  (* down *)
+     Segment.draw ~io ~color:b_color right);
   (if b_down then
      let down =
        Segment.v
@@ -90,15 +95,14 @@ let d_box ~io (x, y) ?border color =
             (grid_coord.y +. cell_size -. 1.))
          (Size.v grid_coord.x (grid_coord.y +. cell_size -. 1.))
      in
-     Segment.draw ~io ~color:(if b_down then b_color else color) down);
-  (* left *)
+     Segment.draw ~io ~color:b_color down);
   if b_left then
     let left =
       Segment.v
         (Size.v grid_coord.x (grid_coord.y +. cell_size -. 1.))
         grid_coord
     in
-    Segment.draw ~io ~color:(if b_left then b_color else color) left
+    Segment.draw ~io ~color:b_color left
 
 let d_cell ~io cell =
   let color = color_of_shape cell.from_shape in
@@ -112,8 +116,17 @@ let d_block ~io block =
 
 let d_shadow ~io shadow =
   let cells = cells_of_block shadow in
-  let color = color_of_shape shadow.shape |> Color.with_alpha 0.5 in
-  List.iter (fun c -> d_box ~io c.position color) cells
+  let inner_color = color_of_shape shadow.shape |> Color.with_alpha 0.5 in
+  let border_color =
+    border_color_of_shape shadow.shape |> Color.with_alpha 0.75
+  in
+  List.iter
+    (fun c ->
+      let up, right, down, left = c.border in
+      d_box ~io c.position
+        ~border:(border_color, up, right, down, left)
+        inner_color)
+    cells
 
 let d_walls ~io =
   (* Left & right walls *)
