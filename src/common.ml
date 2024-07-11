@@ -1,10 +1,17 @@
 let width = 12
 let height = 24
 let base_speed = 60
+
+(* TUNE: 4 seems to be mostly good, changed to 1 for zen mode. *)
 let acceleration = 4
 
-(* TUNE: this min speed feels rightly difficult, but maybe the acceleration isn't correct. *)
-let min_speed = 10
+(** Speed at which the blocks moves while holding the down key.
+    A speed of 2, 3 means we move on 2 out of 3 frames.
+    Does not make sense if above 1. *)
+let hold_speed = (2, 3)
+
+(* TUNE: 10-15 seems to be okay. *)
+let min_speed = 30
 
 type coord = int * int
 (** x, y.
@@ -91,7 +98,7 @@ let pick l n =
     match (l, n) with
     | x :: after, 0 -> (x, before @ after)
     | x :: after, _ -> aux (before @ [ x ]) (n - 1) after
-    | [], _ -> raise @@ Failure "List.pick: list is too short"
+    | [], _ -> failwith "List.pick: list is too short"
   in
   aux [] n l
 

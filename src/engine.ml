@@ -127,8 +127,11 @@ let io_update ~io controls game =
       (validate_block game new_block, controls)
   | Go_left, controls -> (try_move (fun (x, y) -> (x - 1, y)), controls)
   | Go_right, controls -> (try_move (fun (x, y) -> (x + 1, y)), controls)
-  (* TUNE: quick fall feels too quick, maybe move on some frames but not others? *)
-  | Quick_fall, controls -> (try_move (fun (x, y) -> (x, y + 1)), controls)
+  | Quick_fall, controls ->
+      let n, d = hold_speed in
+      if game.timer <> 0 && game.timer mod d < n then
+        (try_move (fun (x, y) -> (x, y + 1)), controls)
+      else (game, controls)
   | Instant_fall, controls ->
       let new_block = shadow game.cells game.block in
       ({ game with block = new_block; timer = game.speed }, controls)
